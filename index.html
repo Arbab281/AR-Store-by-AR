@@ -298,13 +298,22 @@
 /* =========================================================
    CONFIG — fill these in from your Supabase project:
    Dashboard → Settings → API → Project URL / anon public key
+   NOTE: SUPABASE_URL must be the plain project URL
+   (e.g. "https://xxxx.supabase.co") — NOT the /rest/v1/ path.
+   The client library appends the right paths itself.
 ========================================================= */
-const SUPABASE_URL = "https://ebjvrszskgjunhxskbcw.supabase.co/rest/v1/";
+const SUPABASE_URL = "https://ebjvrszskgjunhxskbcw.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVianZyc3pza2dqdW5oeHNrYmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4NDg1OTMsImV4cCI6MjEwNDQyNDU5M30.DAB0MFHyzrGvvMDgoGn-voPPGD7b-_vObIVghqPVS9E";
 
 const isConfigured = SUPABASE_URL.startsWith("http") && SUPABASE_ANON_KEY.length > 20;
 if(!isConfigured){ document.getElementById('configBanner').style.display = 'block'; }
-const supabase = isConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+/* IMPORTANT: the Supabase CDN script above creates a GLOBAL
+   `window.supabase` object. We must NOT name our own client
+   variable "supabase" too, or it collides with that global and
+   can throw "Identifier 'supabase' has already been declared".
+   We call our client `sb` everywhere instead. */
+const sb = isConfigured ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 /* ---------- state ---------- */
 let storeName = "AR Store";
@@ -344,13 +353,16 @@ function saveCart(){
 
 /* ---------- data loading from Supabase ---------- */
 async function loadStoreData(){
-  if(!supabase) return;
+  if(!sb) return;
   try{
-    const [{data: settings}, {data: cats}, {data: prods}] = await Promise.all([
-      supabase.from('store_settings').select('*').eq('id', 1).single(),
-      supabase.from('categories').select('*').order('id'),
-      supabase.from('products').select('*').order('id'),
+    const [{data: settings, error: settingsErr}, {data: cats, error: catsErr}, {data: prods, error: prodsErr}] = await Promise.all([
+      sb.from('store_settings').select('*').eq('id', 1).single(),
+      sb.from('categories').select('*').order('id'),
+      sb.from('products').select('*').order('id'),
     ]);
+    if(settingsErr) console.error('store_settings load error', settingsErr);
+    if(catsErr) console.error('categories load error', catsErr);
+    if(prodsErr) console.error('products load error', prodsErr);
     if(settings){ storeName = settings.store_name; logoInitials = settings.logo_initials; }
     if(cats) categories = cats.map(c=>c.name);
     if(prods) products = prods.map(p=>({...p, img: p.img_url || ""}));
@@ -361,8 +373,8 @@ async function loadStoreData(){
 }
 
 async function checkExistingSession(){
-  if(!supabase) return;
-  const { data } = await supabase.auth.getSession();
+  if(!sb) return;
+  const { data } = await sb.auth.getSession();
   if(data && data.session){
     isAdminAuthed = true;
     adminEmail = data.session.user.email;
@@ -400,6 +412,7 @@ function renderCategoryChips(){
 }
 
 async function addCategory(){
+  if(!sb) return;
   const input = document.getElementById('newCategoryInput');
   const val = input.value.trim();
   if(!val) return;
@@ -407,7 +420,7 @@ async function addCategory(){
     showToast('That category already exists');
     return;
   }
-  const { error } = await supabase.from('categories').insert({ name: val });
+  const { error } = await sb.from('categories').insert({ name: val });
   if(error){ showToast('Could not add category: ' + error.message); return; }
   categories.push(val);
   input.value = '';
@@ -418,17 +431,18 @@ async function addCategory(){
 }
 
 async function removeCategory(cat){
+  if(!sb) return;
   if(categories.length <= 1){ showToast("You need at least one category"); return; }
   const inUse = products.some(p=>p.category===cat);
   const fallback = categories.find(c=>c!==cat);
   if(inUse && !confirm(`"${cat}" is used by existing products. Remove it and reassign those products to "${fallback}"?`)) return;
 
   if(inUse){
-    const { error: updErr } = await supabase.from('products').update({ category: fallback }).eq('category', cat);
+    const { error: updErr } = await sb.from('products').update({ category: fallback }).eq('category', cat);
     if(updErr){ showToast('Could not reassign products: ' + updErr.message); return; }
     products.forEach(p=>{ if(p.category===cat) p.category = fallback; });
   }
-  const { error } = await supabase.from('categories').delete().eq('name', cat);
+  const { error } = await sb.from('categories').delete().eq('name', cat);
   if(error){ showToast('Could not remove category: ' + error.message); return; }
   categories = categories.filter(c=>c!==cat);
   if(activeCat===cat) activeCat = 'All';
@@ -445,6 +459,10 @@ function render(){
     const genOk = activeGender==="All" || p.gender===activeGender || p.gender==="Both";
     return catOk && genOk;
   });
+
+  if(filtered.length===0 && !(mode==='admin' && isAdminAuthed)){
+    grid.innerHTML = '<div class="loading-note">No products match this filter yet.</div>';
+  }
 
   filtered.forEach(p=>{
     const card = document.createElement('div');
@@ -533,10 +551,11 @@ function updateDraftField(id, field, value){
 }
 
 async function saveProduct(id){
+  if(!sb) return;
   const draft = productDrafts[id];
   const p = products.find(pp=>pp.id===id);
   if(!draft || !p) return;
-  const { error } = await supabase.from('products').update({
+  const { error } = await sb.from('products').update({
     name: draft.name, category: draft.category, gender: draft.gender,
     price: draft.price, qty: draft.qty, img_url: draft.img
   }).eq('id', id);
@@ -548,8 +567,9 @@ async function saveProduct(id){
 }
 
 async function deleteProduct(id){
+  if(!sb) return;
   if(!confirm('Remove this product for good?')) return;
-  const { error } = await supabase.from('products').delete().eq('id', id);
+  const { error } = await sb.from('products').delete().eq('id', id);
   if(error){ showToast('Delete failed: ' + error.message); return; }
   products = products.filter(p=>p.id!==id);
   delete cart[id];
@@ -559,9 +579,10 @@ async function deleteProduct(id){
 }
 
 async function addProduct(){
+  if(!sb) return;
   activeCat = 'All';
   activeGender = 'All';
-  const { data, error } = await supabase.from('products').insert({
+  const { data, error } = await sb.from('products').insert({
     name: "New product", category: categories[0], gender: "Men", price: 0, qty: 0, img_url: ""
   }).select().single();
   if(error){ showToast('Could not add product: ' + error.message); return; }
@@ -658,7 +679,8 @@ document.getElementById('staffLoginLink').onclick = ()=>{
 };
 
 document.getElementById('logoutBtn').onclick = async ()=>{
-  await supabase.auth.signOut();
+  if(!sb) return;
+  await sb.auth.signOut();
   isAdminAuthed = false;
   adminEmail = "";
   document.getElementById('adminChip').style.display='none';
@@ -668,11 +690,12 @@ document.getElementById('logoutBtn').onclick = async ()=>{
 };
 
 async function attemptAdminLogin(){
+  if(!sb) return;
   const email = document.getElementById('adminEmailInput').value.trim();
   const password = document.getElementById('adminPasswordInput').value;
   const confirmBtn = document.getElementById('confirmAdminLogin');
   confirmBtn.disabled = true;
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
   confirmBtn.disabled = false;
   if(error){
     document.getElementById('adminError').textContent = error.message;
@@ -702,9 +725,10 @@ document.querySelectorAll('[data-gender]').forEach(b=>{
 });
 
 async function saveBrand(){
+  if(!sb) return;
   const name = document.getElementById('storeNameInput').value || "AR Store";
   const logo = (document.getElementById('logoInput').value || "AR").toUpperCase();
-  const { error } = await supabase.from('store_settings').update({ store_name: name, logo_initials: logo }).eq('id', 1);
+  const { error } = await sb.from('store_settings').update({ store_name: name, logo_initials: logo }).eq('id', 1);
   if(error){ showToast('Could not save: ' + error.message); return; }
   storeName = name; logoInitials = logo;
   document.getElementById('storeName').textContent = storeName;
@@ -781,6 +805,7 @@ document.getElementById('checkoutBtn').onclick = ()=>{
 document.getElementById('cancelPay').onclick = ()=> payModal.classList.remove('open');
 
 document.getElementById('confirmPay').onclick = async ()=>{
+  if(!sb) return;
   const confirmBtn = document.getElementById('confirmPay');
   confirmBtn.disabled = true;
   document.getElementById('checkoutError').style.display = 'none';
@@ -788,7 +813,7 @@ document.getElementById('confirmPay').onclick = async ()=>{
     // Reduce stock safely via a database function — customers aren't
     // signed in, so they can't write to the products table directly.
     for(const id of Object.keys(cart)){
-      const { error } = await supabase.rpc('decrement_stock', { p_id: Number(id), p_qty: cart[id] });
+      const { error } = await sb.rpc('decrement_stock', { p_id: Number(id), p_qty: cart[id] });
       if(error) throw error;
       const p = products.find(p=>p.id==id);
       if(p) p.qty = Math.max(0, p.qty - cart[id]);
@@ -812,7 +837,7 @@ document.getElementById('confirmPay').onclick = async ()=>{
 
 /* ---------- realtime: keep every open tab in sync ---------- */
 function subscribeToChanges(){
-  if(!supabase) return;
+  if(!sb) return;
   let reloadTimer = null;
   const scheduleReload = ()=>{
     clearTimeout(reloadTimer);
@@ -823,7 +848,7 @@ function subscribeToChanges(){
       render();
     }, 300);
   };
-  supabase.channel('ar-store-live')
+  sb.channel('ar-store-live')
     .on('postgres_changes', { event: '*', schema: 'public', table: 'products' }, scheduleReload)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'categories' }, scheduleReload)
     .on('postgres_changes', { event: '*', schema: 'public', table: 'store_settings' }, scheduleReload)
