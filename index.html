@@ -487,7 +487,7 @@ function render(){
       card.innerHTML = `
         <div class="photo">${photoInner}<span class="cat-tag">${p.category} · ${p.gender}</span></div>
         <div class="card-body">
-          ${isDirty ? '<div class="unsaved-flag">Unsaved changes</div>' : ''}
+          <div class="unsaved-flag" id="flag-${p.id}" style="display:${isDirty ? 'inline-block' : 'none'};">Unsaved changes</div>
           <div class="a-field">
             <span class="field-label">Name</span>
             <input type="text" value="${dp.name}" oninput="updateDraftField(${p.id},'name',this.value)">
@@ -547,7 +547,11 @@ function updateDraftField(id, field, value){
   }
   if(field==='price' || field==='qty') productDrafts[id][field] = Math.max(0, Number(value)||0);
   else productDrafts[id][field] = value;
-  render();
+  // Only toggle the "Unsaved changes" flag directly — do NOT call render()
+  // here, since re-building the whole grid on every keystroke steals focus
+  // from the input the user is typing in.
+  const flag = document.getElementById('flag-' + id);
+  if(flag) flag.style.display = 'inline-block';
 }
 
 async function saveProduct(id){
