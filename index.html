@@ -806,9 +806,20 @@ function renderOrders(){
           ${statuses.map(s=>`<option value="${s}" ${s===o.status?'selected':''}>${s}</option>`).join('')}
         </select>
         <a class="order-wa-link" href="${waLink}" target="_blank" rel="noopener">Message on WhatsApp</a>
+        <button class="del-btn" onclick="deleteOrder(${o.id})">Delete order</button>
       </div>`;
     panel.appendChild(card);
   });
+}
+
+async function deleteOrder(id){
+  if(!sb) return;
+  if(!confirm('Permanently delete this order? This cannot be undone.')) return;
+  const { error } = await sb.from('orders').delete().eq('id', id);
+  if(error){ showToast('Could not delete order: ' + error.message); return; }
+  orders = orders.filter(o=>o.id!==id);
+  renderOrders();
+  showToast('Order deleted');
 }
 
 async function removeRating(id){
