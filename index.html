@@ -152,6 +152,12 @@
   .order-status-select{width:auto;min-width:150px;}
   .order-wa-link{font-size:12px;color:var(--ok);text-decoration:none;border:1px solid var(--ok);padding:6px 12px;border-radius:14px;}
   .order-wa-link:hover{background:var(--ok);color:#1a1510;}
+  .track-order-card{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:12px;font-size:13px;}
+  .track-status-badge{display:inline-block;font-size:11px;padding:3px 10px;border-radius:12px;background:var(--accent-soft);color:var(--accent);margin-bottom:8px;}
+  .star-row{display:flex;gap:4px;margin:10px 0;}
+  .star-btn{background:none;border:none;font-size:26px;line-height:1;cursor:pointer;color:var(--border);padding:0;}
+  .star-btn.filled{color:var(--accent);}
+  .already-rated{color:var(--ok);font-size:12.5px;margin-top:6px;}
   @media(max-width:640px){
     .topbar{padding:16px 20px;flex-wrap:wrap;gap:10px;}
     .hero{padding:40px 20px 30px;}
@@ -242,6 +248,7 @@
 <div class="orders-wrap" id="ordersPanel" style="display:none;"></div>
 
 <div style="text-align:center;padding:0 40px 40px;">
+  <button class="staff-link" id="trackOrderLink" style="opacity:0.85;color:var(--text-2);margin-right:14px;">Track / Rate my order</button>
   <button class="staff-link" id="staffLoginLink">Staff</button>
 </div>
 
@@ -324,6 +331,22 @@
       <button class="cancel-btn" id="cancelAdminLogin">Cancel</button>
       <button class="confirm-btn" id="confirmAdminLogin">Sign in</button>
     </div>
+  </div>
+</div>
+
+<div class="modal-wrap" id="trackModal">
+  <div class="modal" style="width:380px;">
+    <h3>Track / rate my order</h3>
+    <p>Enter the phone number you used when placing your order.</p>
+    <div class="a-field" style="margin-bottom:10px;">
+      <span class="field-label">Phone number</span>
+      <input type="text" id="trackPhoneInput" placeholder="03xx-xxxxxxx">
+    </div>
+    <div class="modal-actions" style="margin-bottom:14px;">
+      <button class="cancel-btn" id="cancelTrack">Close</button>
+      <button class="confirm-btn" id="lookupOrdersBtn">Find my orders</button>
+    </div>
+    <div id="trackResults"></div>
   </div>
 </div>
 
@@ -755,6 +778,13 @@ function renderOrders(){
     const placed = o.created_at ? new Date(o.created_at).toLocaleString() : '';
     const itemsHtml = (o.items||[]).map(it=>`${it.name} × ${it.qty} — ${fmt(it.price*it.qty)}`).join('<br>');
     const waLink = `https://wa.me/${(o.phone||'').replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hi ' + o.customer_name + ', this is AR Store regarding your order.')}`;
+    const ratingHtml = o.rating
+      ? `<div class="track-order-card" style="margin-top:10px;">
+           <strong style="color:var(--accent);">${'★'.repeat(o.rating)}${'☆'.repeat(5-o.rating)}</strong> (${o.rating}/5)
+           ${o.review ? `<div style="margin-top:4px;color:var(--text-2);">"${o.review}"</div>` : ''}
+           <button class="del-btn" style="margin-top:8px;" onclick="removeRating(${o.id})">Remove rating</button>
+         </div>`
+      : '';
     card.innerHTML = `
       <div class="order-top">
         <div class="order-id">Order #${o.id}</div>
@@ -770,6 +800,7 @@ function renderOrders(){
       <div class="order-totals"><span>Subtotal</span><span>${fmt(o.subtotal)}</span></div>
       <div class="order-totals"><span>Delivery charges</span><span>${fmt(o.delivery_charge)}</span></div>
       <div class="order-totals grand"><span>Total</span><span>${fmt(o.total)}</span></div>
+      ${ratingHtml}
       <div class="order-foot">
         <select class="order-status-select" onchange="updateOrderStatus(${o.id}, this.value)">
           ${statuses.map(s=>`<option value="${s}" ${s===o.status?'selected':''}>${s}</option>`).join('')}
@@ -780,13 +811,52 @@ function renderOrders(){
   });
 }
 
+async function removeRating(id){
+  if(!sb) return;
+  if(!confirm('Remove this customer rating and review?')) return;
+  const { error } = await sb.from('orders').update({ rating: null, review: null }).eq('id', id);
+  if(error){ showToast('Could not remove rating: ' + error.message); return; }
+  const o = orders.find(o=>o.id===id);
+  if(o){ o.rating = null; o.review = null; }
+  renderOrders();
+  showToast('Rating removed');
+}
+
 async function updateOrderStatus(id, newStatus){
   if(!sb) return;
+  // Open the tab synchronously (before any "await") so browsers don't
+  // treat it as a blocked popup — we fill in the real URL once we know
+  // the update succeeded.
+  let waWindow = null;
+  if(newStatus === 'Cancelled'){
+    waWindow = window.open('', '_blank');
+  }
+
   const { error } = await sb.from('orders').update({ status: newStatus }).eq('id', id);
-  if(error){ showToast('Could not update status: ' + error.message); return; }
+  if(error){
+    if(waWindow) waWindow.close();
+    showToast('Could not update status: ' + error.message);
+    return;
+  }
   const o = orders.find(o=>o.id===id);
   if(o) o.status = newStatus;
-  showToast('Order status updated');
+  renderOrders();
+
+  if(newStatus === 'Cancelled' && o){
+    const msg = encodeURIComponent(
+      `Hi ${o.customer_name}, we're sorry to let you know that one or more items in your order (#${o.id}) are currently out of stock, so we've had to cancel it. We apologize for the inconvenience — please let us know if you'd like a replacement or a refund.`
+    );
+    const phoneDigits = (o.phone || '').replace(/[^0-9]/g, '');
+    if(phoneDigits && waWindow){
+      waWindow.location.href = `https://wa.me/${phoneDigits}?text=${msg}`;
+      showToast('Order cancelled — WhatsApp chat opened, press Send to notify the customer');
+    } else {
+      if(waWindow) waWindow.close();
+      showToast('Order cancelled — but no valid phone number was found to notify the customer');
+    }
+  } else {
+    showToast('Order status updated');
+  }
 }
 
 document.getElementById('btnCustomer').onclick = enterCustomerMode;
@@ -843,6 +913,101 @@ document.getElementById('cancelAdminLogin').onclick = ()=>{
 };
 document.getElementById('adminPasswordInput').addEventListener('keydown', (e)=>{ if(e.key === 'Enter') attemptAdminLogin(); });
 
+/* ---------- track / rate my order (customer-facing, no login needed) ---------- */
+const trackModal = document.getElementById('trackModal');
+
+document.getElementById('trackOrderLink').onclick = ()=>{
+  if(!isConfigured){ showToast('Store is not set up yet'); return; }
+  document.getElementById('trackPhoneInput').value = '';
+  document.getElementById('trackResults').innerHTML = '';
+  trackModal.classList.add('open');
+};
+document.getElementById('cancelTrack').onclick = ()=> trackModal.classList.remove('open');
+
+async function lookupOrdersByPhone(){
+  const phone = document.getElementById('trackPhoneInput').value.trim();
+  const resultsEl = document.getElementById('trackResults');
+  if(!phone){ showToast('Please enter your phone number'); return; }
+  resultsEl.innerHTML = '<div class="loading-note">Searching…</div>';
+  const { data, error } = await sb.rpc('get_orders_by_phone', { p_phone: phone });
+  if(error){
+    resultsEl.innerHTML = `<div class="error-note" style="display:block;">Could not look up orders: ${error.message}</div>`;
+    return;
+  }
+  if(!data || data.length === 0){
+    resultsEl.innerHTML = '<div class="loading-note">No orders found for this phone number.</div>';
+    return;
+  }
+  resultsEl.innerHTML = '';
+  data.forEach(o=>{
+    const card = document.createElement('div');
+    card.className = 'track-order-card';
+    const itemsHtml = (o.items||[]).map(it=>`${it.name} × ${it.qty}`).join(', ');
+    let ratingHtml = '';
+    if(o.status === 'Delivered'){
+      if(o.rating){
+        ratingHtml = `<div class="already-rated">You rated this order ${o.rating}/5${o.review ? ' — "' + o.review + '"' : ''}. Thank you!</div>`;
+      } else {
+        ratingHtml = `
+          <div class="field-label" style="margin-top:8px;">Rate this order</div>
+          <div class="star-row" id="starRow-${o.id}"></div>
+          <textarea id="reviewText-${o.id}" rows="2" placeholder="Optional comment about your experience" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;width:100%;resize:vertical;margin-bottom:8px;"></textarea>
+          <button class="save-pill" onclick="submitRating(${o.id}, '${phone.replace(/'/g,"\\'")}')">Submit rating</button>
+          <div class="error-note" id="ratingError-${o.id}">Please select a star rating first.</div>`;
+      }
+    }
+    card.innerHTML = `
+      <span class="track-status-badge">${o.status}</span>
+      <div style="font-family:'Cormorant Garamond',serif;font-size:17px;">Order #${o.id}</div>
+      <div style="color:var(--text-3);font-size:12px;margin-bottom:6px;">${o.created_at ? new Date(o.created_at).toLocaleString() : ''}</div>
+      <div style="color:var(--text-2);">${itemsHtml}</div>
+      <div style="color:var(--accent);margin-top:4px;">${fmt(o.total)}</div>
+      ${ratingHtml}`;
+    resultsEl.appendChild(card);
+    if(o.status === 'Delivered' && !o.rating){
+      buildStarRow(o.id);
+    }
+  });
+}
+document.getElementById('lookupOrdersBtn').onclick = lookupOrdersByPhone;
+document.getElementById('trackPhoneInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') lookupOrdersByPhone(); });
+
+const selectedRatings = {}; // orderId -> chosen star value (in-memory only)
+
+function buildStarRow(orderId){
+  const row = document.getElementById('starRow-' + orderId);
+  if(!row) return;
+  row.innerHTML = '';
+  for(let i=1;i<=5;i++){
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'star-btn';
+    btn.textContent = '★';
+    btn.onclick = ()=>{
+      selectedRatings[orderId] = i;
+      Array.from(row.children).forEach((el, idx)=>{
+        el.classList.toggle('filled', idx < i);
+      });
+    };
+    row.appendChild(btn);
+  }
+}
+
+async function submitRating(orderId, phone){
+  const rating = selectedRatings[orderId];
+  const errEl = document.getElementById('ratingError-' + orderId);
+  if(!rating){ errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+  const review = document.getElementById('reviewText-' + orderId).value.trim();
+  const { error } = await sb.rpc('submit_order_rating', {
+    p_order_id: orderId, p_phone: phone, p_rating: rating, p_review: review
+  });
+  if(error){ showToast('Could not submit rating: ' + error.message); return; }
+  showToast('Thank you for your feedback!');
+  lookupOrdersByPhone();
+}
+
+
 document.querySelectorAll('[data-gender]').forEach(b=>{
   b.onclick = ()=>{
     document.querySelectorAll('[data-gender]').forEach(x=>x.classList.remove('active'));
@@ -893,7 +1058,7 @@ const DELIVERY_CHARGE = 249;
    Change this to your real WhatsApp business number, using the
    country code with NO plus sign, spaces or dashes.
    Example for Pakistan: "923001234567" */
-const WHATSAPP_NUMBER = "923001234567";
+const WHATSAPP_NUMBER = "923351395343";
 
 function getCartSubtotal(){
   return Object.keys(cart).reduce((sum,id)=>{
