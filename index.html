@@ -138,11 +138,11 @@
   .loading-note{color:var(--text-3);font-size:13px;padding:40px;text-align:center;}
   .whatsapp-fab{position:fixed;bottom:22px;right:22px;width:52px;height:52px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,0.4);z-index:65;text-decoration:none;transition:transform 0.15s;}
   .whatsapp-fab:hover{transform:scale(1.07);}
-  .perfume-corner{position:fixed;top:10px;right:105px;width:60px;height:60px;z-index:64;pointer-events:none;}
+  .perfume-corner{position:fixed;top:130px;right:30px;width:130px;height:130px;z-index:64;pointer-events:none;}
   .perfume-corner img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,0.5));opacity:0;transition:opacity 0.6s ease;}
   .perfume-corner img.show{opacity:1;}
   @media(max-width:640px){
-    .perfume-corner{width:42px;height:42px;top:14px;right:80px;}
+    .perfume-corner{width:80px;height:80px;top:100px;right:16px;}
   }
   .orders-wrap{padding:36px 40px 80px;}
   .order-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:16px;}
@@ -1087,7 +1087,8 @@ const WHATSAPP_NUMBER = "923351395343";
    then next perfume, and so on — every 3 seconds.
    Add as many URLs as you like to each list. */
 const WATCH_IMAGES = [
-  // TODO: paste your watch product photo URLs here
+  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRDDhvBpxVMjVtqfjnbUiA0IsYcXWWTwET7O508B3uQSg&s=10",
+  "https://pushopper.com/wp-content/uploads/2024/07/PUSHOPPER_Analogue-Watches-_01IMG_20240725_012203-scaled.webp"
 ];
 const PERFUME_IMAGES = [
   "https://static.sweetcare.com/img/prd/488/v-638200521091365222/dior-012623di-1.webp",
@@ -1223,7 +1224,7 @@ function startPerfumeRotation(){
   const imgA = document.getElementById('perfumeCornerImgA');
   const imgB = document.getElementById('perfumeCornerImgB');
   let watchIdx = 0, perfumeIdx = 0;
-  let turn = hasWatch ? 'watch' : 'perfume'; // which category shows next
+  let turn = hasPerfume ? 'perfume' : 'watch'; // which category shows next
   let showingA = true;
 
   function nextSrc(){
