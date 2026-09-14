@@ -142,9 +142,6 @@
   .perfume-corner img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,0.5));opacity:0;transition:opacity 0.6s ease;}
   .perfume-corner img.show{opacity:1;}
   .perfume-corner.hide-on-scroll{opacity:0;}
-  @media(max-width:900px){
-    .perfume-corner{display:none;}
-  }
   .orders-wrap{padding:36px 40px 80px;}
   .order-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:16px;}
   .order-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
@@ -166,9 +163,24 @@
   .star-btn.filled{color:var(--accent);}
   .already-rated{color:var(--ok);font-size:12.5px;margin-top:6px;}
   @media(max-width:640px){
-    .topbar{padding:16px 20px;flex-wrap:wrap;gap:10px;}
+    .topbar{padding:14px 16px;flex-wrap:nowrap;gap:8px;}
+    .brand{gap:8px;min-width:0;}
+    .brand-mark{width:30px;height:30px;font-size:13px;}
+    .brand-name{font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:130px;}
+    .top-actions{gap:8px;flex-shrink:0;overflow-x:auto;max-width:60vw;}
+    .mode-toggle button{padding:6px 10px;font-size:12px;}
+    .admin-chip{font-size:10.5px;}
+    .cart-btn{padding:7px 12px;font-size:12.5px;}
     .hero{padding:40px 20px 30px;}
-    .hero h1{font-size:38px;}
+    .hero h1{font-size:34px;}
+    .perfume-corner{
+      position:static;
+      width:150px;
+      height:150px;
+      margin:20px auto 4px;
+      opacity:1 !important;
+      pointer-events:auto;
+    }
     .filters{padding:0 20px 22px;}
     .grid{padding:28px 20px 60px;}
     .drawer{width:100%;right:-100%;}
@@ -205,6 +217,11 @@
   <div class="tagline" id="heroTagline">WATCHES &amp; PERFUMES</div>
   <h1 class="serif" id="heroHeading">Timepieces &amp; scents, chosen with care</h1>
   <p id="heroSub">Curated pieces for men and women. Every item added by hand.</p>
+
+  <div class="perfume-corner" id="perfumeCorner">
+    <img id="perfumeCornerImgA" class="show" src="" alt="Perfume">
+    <img id="perfumeCornerImgB" src="" alt="Perfume">
+  </div>
 
   <div class="admin-brand-edit" id="brandEdit" style="display:none;">
     <div style="flex:1;min-width:160px;">
@@ -355,11 +372,6 @@
     </div>
     <div id="trackResults"></div>
   </div>
-</div>
-
-<div class="perfume-corner" id="perfumeCorner">
-  <img id="perfumeCornerImgA" class="show" src="" alt="Perfume">
-  <img id="perfumeCornerImgB" src="" alt="Perfume">
 </div>
 
 <a href="#" id="whatsappFab" class="whatsapp-fab" target="_blank" rel="noopener" title="Chat with us on WhatsApp">
@@ -1222,6 +1234,10 @@ function setupPerfumeScrollHide(){
   const hero = document.querySelector('.hero');
   if(!widget || !hero) return;
   function checkScroll(){
+    if(window.innerWidth <= 640){
+      widget.classList.remove('hide-on-scroll');
+      return;
+    }
     const heroBottom = hero.getBoundingClientRect().bottom;
     if(heroBottom < 80){
       widget.classList.add('hide-on-scroll');
@@ -1230,6 +1246,7 @@ function setupPerfumeScrollHide(){
     }
   }
   window.addEventListener('scroll', checkScroll, { passive: true });
+  window.addEventListener('resize', checkScroll);
   checkScroll();
 }
 
