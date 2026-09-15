@@ -138,10 +138,6 @@
   .loading-note{color:var(--text-3);font-size:13px;padding:40px;text-align:center;}
   .whatsapp-fab{position:fixed;bottom:22px;right:22px;width:52px;height:52px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 14px rgba(0,0,0,0.4);z-index:65;text-decoration:none;transition:transform 0.15s;}
   .whatsapp-fab:hover{transform:scale(1.07);}
-  .perfume-corner{position:fixed;top:96px;right:24px;width:180px;height:180px;z-index:15;pointer-events:none;transition:opacity 0.3s ease;}
-  .perfume-corner img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 6px 14px rgba(0,0,0,0.5));opacity:0;transition:opacity 0.6s ease;}
-  .perfume-corner img.show{opacity:1;}
-  .perfume-corner.hide-on-scroll{opacity:0;}
   .orders-wrap{padding:36px 40px 80px;}
   .order-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:16px;}
   .order-top{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:10px;}
@@ -173,14 +169,6 @@
     .cart-btn{padding:7px 12px;font-size:12.5px;}
     .hero{padding:40px 20px 30px;}
     .hero h1{font-size:34px;}
-    .perfume-corner{
-      position:static;
-      width:150px;
-      height:150px;
-      margin:20px auto 4px;
-      opacity:1 !important;
-      pointer-events:auto;
-    }
     .filters{padding:0 20px 22px;}
     .grid{padding:28px 20px 60px;}
     .drawer{width:100%;right:-100%;}
@@ -217,11 +205,6 @@
   <div class="tagline" id="heroTagline">WATCHES &amp; PERFUMES</div>
   <h1 class="serif" id="heroHeading">Timepieces &amp; scents, chosen with care</h1>
   <p id="heroSub">Curated pieces for men and women. Every item added by hand.</p>
-
-  <div class="perfume-corner" id="perfumeCorner">
-    <img id="perfumeCornerImgA" class="show" src="" alt="Perfume">
-    <img id="perfumeCornerImgB" src="" alt="Perfume">
-  </div>
 
   <div class="admin-brand-edit" id="brandEdit" style="display:none;">
     <div style="flex:1;min-width:160px;">
@@ -1095,21 +1078,6 @@ const DELIVERY_CHARGE = 249;
    Example for Pakistan: "923001234567" */
 const WHATSAPP_NUMBER = "923351395343";
 
-/* ---------- rotating watch/perfume corner widget ----------
-   Alternates: 1 watch photo, then 1 perfume photo, then next watch,
-   then next perfume, and so on — every 3 seconds.
-   Add as many URLs as you like to each list. */
-const WATCH_IMAGES = [
-  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRDDhvBpxVMjVtqfjnbUiA0IsYcXWWTwET7O508B3uQSg&s=10",
-  "https://pushopper.com/wp-content/uploads/2024/07/PUSHOPPER_Analogue-Watches-_01IMG_20240725_012203-scaled.webp"
-];
-const PERFUME_IMAGES = [
-  "https://static.sweetcare.com/img/prd/488/v-638200521091365222/dior-012623di-1.webp",
-  "https://bhfmart.com/wp-content/uploads/2026/03/IMG-20260314-WA0008.jpg",
-  "https://abuhaashir.com/cdn/shop/files/Copy_of_Abu_haashir_50_ml_inspirations_mockupp_7.png?v=1784547666",
-  "https://cdn.shopify.com/s/files/1/0702/2487/1584/files/royal_oud_1_f9dd51da-5b12-40d5-a2cd-80546cf23688.jpg?v=1776979251"
-];
-
 function getCartSubtotal(){
   return Object.keys(cart).reduce((sum,id)=>{
     const p = products.find(p=>p.id==id);
@@ -1228,65 +1196,6 @@ document.getElementById('confirmPay').onclick = async ()=>{
 };
 
 /* ---------- realtime: keep every open tab in sync ---------- */
-/* ---------- rotating watch/perfume widget ---------- */
-function setupPerfumeScrollHide(){
-  const widget = document.getElementById('perfumeCorner');
-  const hero = document.querySelector('.hero');
-  if(!widget || !hero) return;
-  function checkScroll(){
-    if(window.innerWidth <= 640){
-      widget.classList.remove('hide-on-scroll');
-      return;
-    }
-    const heroBottom = hero.getBoundingClientRect().bottom;
-    if(heroBottom < 80){
-      widget.classList.add('hide-on-scroll');
-    } else {
-      widget.classList.remove('hide-on-scroll');
-    }
-  }
-  window.addEventListener('scroll', checkScroll, { passive: true });
-  window.addEventListener('resize', checkScroll);
-  checkScroll();
-}
-
-function startPerfumeRotation(){
-  const hasWatch = WATCH_IMAGES.length > 0;
-  const hasPerfume = PERFUME_IMAGES.length > 0;
-  if(!hasWatch && !hasPerfume) return;
-
-  const imgA = document.getElementById('perfumeCornerImgA');
-  const imgB = document.getElementById('perfumeCornerImgB');
-  let watchIdx = 0, perfumeIdx = 0;
-  let turn = hasPerfume ? 'perfume' : 'watch'; // which category shows next
-  let showingA = true;
-
-  function nextSrc(){
-    if(turn === 'watch' && hasWatch){
-      const src = WATCH_IMAGES[watchIdx % WATCH_IMAGES.length];
-      watchIdx++;
-      turn = hasPerfume ? 'perfume' : 'watch';
-      return src;
-    } else if(hasPerfume){
-      const src = PERFUME_IMAGES[perfumeIdx % PERFUME_IMAGES.length];
-      perfumeIdx++;
-      turn = hasWatch ? 'watch' : 'perfume';
-      return src;
-    }
-  }
-
-  imgA.src = nextSrc();
-
-  setInterval(()=>{
-    const nextImg = showingA ? imgB : imgA;
-    const currentImg = showingA ? imgA : imgB;
-    nextImg.src = nextSrc();
-    nextImg.classList.add('show');
-    currentImg.classList.remove('show');
-    showingA = !showingA;
-  }, 3000);
-}
-
 function subscribeToChanges(){
   if(!sb) return;
   let reloadTimer = null;
@@ -1340,9 +1249,6 @@ function subscribeToChanges(){
   const waFab = document.getElementById('whatsappFab');
   const waText = encodeURIComponent(`Hi ${storeName}, I have a question.`);
   waFab.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${waText}`;
-
-  startPerfumeRotation();
-  setupPerfumeScrollHide();
 })();
 </script>
 </body>
