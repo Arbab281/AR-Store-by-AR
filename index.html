@@ -54,6 +54,11 @@
   .save-pill{background:var(--accent);color:#1a1510;border:none;padding:8px 18px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;}
   .save-pill:hover{opacity:0.9;}
   .save-pill:disabled{opacity:0.5;cursor:not-allowed;}
+  .upload-btn{display:flex;align-items:center;justify-content:center;gap:6px;background:var(--surface-2);border:1px solid var(--border);color:var(--text-2);padding:8px 10px;border-radius:6px;font-size:12.5px;cursor:pointer;font-family:'Inter',sans-serif;text-align:center;}
+  .upload-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .upload-status{font-size:11px;color:var(--text-3);white-space:nowrap;}
+  .upload-status.ok{color:var(--ok);}
+  .upload-status.err{color:var(--danger);}
   .add-product-btn{background:var(--accent);color:#1a1510;border:none;padding:11px 22px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;}
   .add-product-btn:hover{opacity:0.9;}
   .filters{display:flex;gap:28px;padding:0 40px 28px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
@@ -590,7 +595,14 @@ function render(){
           </div>
           <div class="a-field">
             <span class="field-label">Picture URL</span>
-            <input type="url" value="${dp.img}" placeholder="https://..." oninput="updateDraftField(${p.id},'img',this.value)">
+            <input type="url" id="imgUrlInput-${p.id}" value="${dp.img}" placeholder="https://..." oninput="updateDraftField(${p.id},'img',this.value)">
+            <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+              <label class="upload-btn" style="flex:1;">
+                📁 Upload from gallery
+                <input type="file" accept="image/*" style="display:none;" onchange="uploadProductImage(${p.id}, this.files[0])">
+              </label>
+              <span class="upload-status" id="uploadStatus-${p.id}"></span>
+            </div>
           </div>
           <button class="save-pill" style="width:100%;margin-top:2px;" onclick="saveProduct(${p.id})">Save changes</button>
           <button class="del-btn" onclick="deleteProduct(${p.id})">Remove product</button>
@@ -622,6 +634,45 @@ function updateDraftField(id, field, value){
   // from the input the user is typing in.
   const flag = document.getElementById('flag-' + id);
   if(flag) flag.style.display = 'inline-block';
+}
+
+async function uploadProductImage(id, file){
+  if(!sb || !file) return;
+  const statusEl = document.getElementById('uploadStatus-' + id);
+  if(!file.type.startsWith('image/')){
+    if(statusEl){ statusEl.textContent = 'Please choose an image file'; statusEl.className = 'upload-status err'; }
+    return;
+  }
+  if(file.size > 5 * 1024 * 1024){
+    if(statusEl){ statusEl.textContent = 'Image must be under 5MB'; statusEl.className = 'upload-status err'; }
+    return;
+  }
+  if(statusEl){ statusEl.textContent = 'Uploading…'; statusEl.className = 'upload-status'; }
+
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+  const path = `product-${id}-${Date.now()}.${ext}`;
+
+  const { error: uploadErr } = await sb.storage.from('product-images').upload(path, file, {
+    cacheControl: '3600',
+    upsert: false
+  });
+  if(uploadErr){
+    if(statusEl){ statusEl.textContent = 'Upload failed: ' + uploadErr.message; statusEl.className = 'upload-status err'; }
+    showToast('Image upload failed: ' + uploadErr.message);
+    return;
+  }
+
+  const { data } = sb.storage.from('product-images').getPublicUrl(path);
+  const publicUrl = data.publicUrl;
+
+  // Fill the URL field and mark the product as having unsaved changes,
+  // without re-rendering the whole grid (keeps the admin's place).
+  const urlInput = document.getElementById('imgUrlInput-' + id);
+  if(urlInput) urlInput.value = publicUrl;
+  updateDraftField(id, 'img', publicUrl);
+
+  if(statusEl){ statusEl.textContent = 'Uploaded ✓ — click Save changes'; statusEl.className = 'upload-status ok'; }
+  showToast('Photo uploaded — click "Save changes" to publish it');
 }
 
 async function saveProduct(id){
