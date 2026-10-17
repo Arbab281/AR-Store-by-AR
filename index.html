@@ -350,13 +350,12 @@
     </div>
     <div class="error-note" id="custInfoError">Please fill in your name, phone number and complete address.</div>
     <h3 style="margin-top:6px;">Choose payment method</h3>
-    <p>This is a prototype — no real transaction happens here.</p>
+    <p>Pay by Easypaisa or Cash on delivery.</p>
     <div id="payOptions">
-      <label class="pay-option"><input type="radio" name="pm" value="JazzCash" checked> JazzCash</label>
-      <label class="pay-option"><input type="radio" name="pm" value="Easypaisa"> Easypaisa</label>
-      <label class="pay-option"><input type="radio" name="pm" value="Card"> Debit / credit card</label>
+      <label class="pay-option"><input type="radio" name="pm" value="Easypaisa" checked> Easypaisa</label>
       <label class="pay-option"><input type="radio" name="pm" value="COD"> Cash on delivery</label>
     </div>
+    <div class="wallet-hint" id="codNote" style="display:none;margin:-4px 0 14px;">Pay the total amount in cash to the rider when your order arrives.</div>
     <div class="wallet-details" id="walletDetails" style="display:none;">
       <div class="wallet-card-title" id="walletCardTitle">Easypaisa Transfer Details</div>
       <div class="wallet-row"><span>Account Title</span><strong id="walletTitle">AR Store</strong></div>
@@ -467,6 +466,9 @@ function esc(s){
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
     .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+
+/* "Shipped" in the database is shown to people as "Dispatched" */
+function statusLabel(s){ return s === 'Shipped' ? 'Dispatched' : s; }
 
 function showToast(msg){
   const t = document.getElementById('toast');
@@ -965,8 +967,9 @@ function renderOrders(){
       ${ratingHtml}
       <div class="order-foot">
         <select class="order-status-select" onchange="updateOrderStatus(${o.id}, this.value)">
-          ${statuses.map(s=>`<option value="${s}" ${s===o.status?'selected':''}>${s}</option>`).join('')}
+          ${statuses.map(s=>`<option value="${s}" ${s===o.status?'selected':''}>${statusLabel(s)}</option>`).join('')}
         </select>
+        ${o.status === 'Shipped' ? `<button class="save-pill" onclick="updateOrderStatus(${o.id}, 'Delivered')">✓ Mark as Delivered</button>` : ''}
         <a class="order-wa-link" href="${waLink}" target="_blank" rel="noopener">Message on WhatsApp</a>
         <button class="del-btn" onclick="deleteOrder(${o.id})">Delete order</button>
       </div>`;
@@ -1134,7 +1137,7 @@ async function lookupOrdersByPhone(){
       ratingHtml = `<div style="color:var(--text-3);font-size:12px;margin-top:8px;">You can rate this order once it has been delivered.</div>`;
     }
     card.innerHTML = `
-      <span class="track-status-badge">${o.status}</span>
+      <span class="track-status-badge">${statusLabel(o.status)}</span>
       <div style="font-family:'Cormorant Garamond',serif;font-size:17px;">Order #${o.id}</div>
       <div style="color:var(--text-3);font-size:12px;margin-bottom:6px;">${o.created_at ? new Date(o.created_at).toLocaleString() : ''}</div>
       <div style="color:var(--text-2);">${itemsHtml}</div>
@@ -1264,8 +1267,10 @@ function updateWalletDetails(){
     document.getElementById('copyWalletNumber').textContent = 'Copy';
     document.getElementById('copyWalletNumber').classList.remove('copied');
     box.style.display = 'block';
+    document.getElementById('codNote').style.display = 'none';
   } else {
     box.style.display = 'none';
+    document.getElementById('codNote').style.display = selected === 'COD' ? 'block' : 'none';
   }
 }
 
