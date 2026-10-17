@@ -6,7 +6,7 @@
 <title>AR Store</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root{
@@ -43,14 +43,27 @@
   .cart-btn:hover{border-color:var(--accent);}
   .cart-count{position:absolute;top:-7px;right:-7px;background:var(--accent);color:#1a1510;font-size:11px;font-weight:600;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;}
   .hero{padding:64px 40px 40px;max-width:900px;}
-  .hero .tagline{color:var(--accent);font-size:12px;letter-spacing:1.5px;margin-bottom:10px;}
+  .hero .tagline{font-size:12px;letter-spacing:2.5px;margin-bottom:10px;font-weight:600;
+    background:linear-gradient(90deg,#e9c97b,#d4837a,#e9c97b);background-size:200% auto;
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
+    animation:taglineShine 5s linear infinite;}
+  @keyframes taglineShine{to{background-position:200% center;}}
   .hero h1{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:52px;line-height:1.1;margin-bottom:14px;}
+  .hero h1 .g-gold{font-style:italic;font-weight:600;
+    background:linear-gradient(90deg,#f3e2b3,#d9b36a,#b08d57,#f3e2b3);background-size:200% auto;
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
+    animation:taglineShine 6s linear infinite;}
+  .hero h1 .g-rose{font-style:italic;font-weight:600;
+    background:linear-gradient(90deg,#f0c4a8,#e08f84,#c96a7a,#f0c4a8);background-size:200% auto;
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
+    animation:taglineShine 6s linear infinite;}
   .hero p{color:var(--text-2);font-size:15px;max-width:520px;line-height:1.6;}
   .admin-brand-edit{margin-top:20px;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;max-width:640px;}
   .admin-brand-edit input{flex:1;min-width:160px;}
   .field-label{font-size:11px;color:var(--text-3);display:block;margin-bottom:5px;letter-spacing:0.3px;}
   input[type=text], input[type=number], input[type=url], input[type=password], input[type=email], select{background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;width:100%;}
-  input:focus, select:focus{outline:none;border-color:var(--accent);}
+  input:focus, select:focus, .a-textarea:focus{outline:none;border-color:var(--accent);}
+  .a-textarea{background:var(--surface-2);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;width:100%;resize:vertical;line-height:1.5;}
   .save-pill{background:var(--accent);color:#1a1510;border:none;padding:8px 18px;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap;}
   .save-pill:hover{opacity:0.9;}
   .save-pill:disabled{opacity:0.5;cursor:not-allowed;}
@@ -70,10 +83,22 @@
   .cat-chip button{background:none;border:none;color:var(--text-3);cursor:pointer;font-size:13px;line-height:1;padding:2px 4px;}
   .cat-chip button:hover{color:var(--danger);}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:24px;padding:36px 40px 80px;}
-  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;display:flex;flex-direction:column;transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease;}
   .photo{aspect-ratio:1/1;background:var(--surface-2);display:flex;align-items:center;justify-content:center;color:var(--text-3);font-size:12px;position:relative;overflow:hidden;}
-  .photo img{width:100%;height:100%;object-fit:cover;}
-  .cat-tag{position:absolute;top:10px;left:10px;font-size:10px;letter-spacing:0.5px;color:var(--accent);background:rgba(18,17,16,0.7);padding:3px 8px;border-radius:10px;}
+  .photo img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease;}
+  .cat-tag{position:absolute;top:10px;left:10px;font-size:10px;letter-spacing:0.5px;color:var(--accent);background:rgba(18,17,16,0.7);padding:3px 8px;border-radius:10px;z-index:2;}
+
+  /* ---- hover highlight + description (customer view) ---- */
+  .card.shop:hover{transform:translateY(-6px);border-color:var(--accent);box-shadow:0 14px 34px rgba(176,141,87,0.25);}
+  .card.shop:hover .photo img{transform:scale(1.07);}
+  .desc-overlay{position:absolute;left:0;right:0;bottom:0;padding:46px 14px 14px;background:linear-gradient(transparent,rgba(18,17,16,0.94) 55%);color:var(--text);font-size:12.5px;line-height:1.55;opacity:0;transform:translateY(10px);transition:opacity .25s ease,transform .25s ease;pointer-events:none;z-index:1;}
+  .card.shop:hover .desc-overlay{opacity:1;transform:translateY(0);}
+  .p-desc{display:none;font-size:12.5px;color:var(--text-2);line-height:1.5;}
+  @media(hover:none){
+    .desc-overlay{display:none;}
+    .p-desc{display:block;}
+  }
+
   .card-body{padding:16px;display:flex;flex-direction:column;gap:8px;flex:1;}
   .p-name{font-family:'Cormorant Garamond',serif;font-size:20px;}
   .p-price{font-size:16px;color:var(--accent);margin-top:2px;}
@@ -160,9 +185,28 @@
   .track-order-card{background:var(--surface-2);border:1px solid var(--border);border-radius:8px;padding:14px;margin-top:12px;font-size:13px;}
   .track-status-badge{display:inline-block;font-size:11px;padding:3px 10px;border-radius:12px;background:var(--accent-soft);color:var(--accent);margin-bottom:8px;}
   .star-row{display:flex;gap:4px;margin:10px 0;}
-  .star-btn{background:none;border:none;font-size:26px;line-height:1;cursor:pointer;color:var(--border);padding:0;}
-  .star-btn.filled{color:var(--accent);}
+  .star-btn{background:none;border:none;font-size:30px;line-height:1;cursor:pointer;color:var(--border);padding:0;transition:transform .15s,color .15s;}
+  .star-btn:hover{transform:scale(1.2);color:#e9c97b;}
+  .star-row:hover .star-btn{color:#5a4c36;}
+  .star-btn.filled{color:#e9b949;}
+  .star-row:hover .star-btn:hover,
+  .star-row .star-btn:hover{color:#e9c97b;}
   .already-rated{color:var(--ok);font-size:12.5px;margin-top:6px;}
+  .rating-label{font-size:12px;color:var(--accent);min-height:16px;margin-bottom:6px;}
+
+  /* ---- public customer reviews section ---- */
+  .reviews-section{padding:10px 40px 50px;border-top:1px solid var(--border);}
+  .reviews-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin:34px 0 18px;}
+  .reviews-head h2{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:30px;}
+  .reviews-avg{font-size:13px;color:var(--text-2);}
+  .reviews-avg .stars{color:#e9b949;font-size:17px;letter-spacing:1px;margin-right:6px;}
+  .reviews-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px;}
+  .review-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;}
+  .review-card .stars{color:#e9b949;font-size:16px;letter-spacing:1px;}
+  .review-card .stars .off{color:var(--border);}
+  .review-card .r-text{font-size:13px;color:var(--text-2);line-height:1.6;margin:8px 0;}
+  .review-card .r-by{font-size:11.5px;color:var(--text-3);}
+
   @media(max-width:640px){
     .topbar{padding:14px 16px;flex-wrap:nowrap;gap:8px;}
     .brand{gap:8px;min-width:0;}
@@ -178,6 +222,7 @@
     .grid{padding:28px 20px 60px;}
     .drawer{width:100%;right:-100%;}
     .config-banner{padding:14px 20px;}
+    .reviews-section{padding:10px 20px 40px;}
   }
 </style>
 </head>
@@ -208,7 +253,7 @@
 
 <div class="hero">
   <div class="tagline" id="heroTagline">WATCHES &amp; PERFUMES</div>
-  <h1 class="serif" id="heroHeading">Timepieces &amp; scents, chosen with care</h1>
+  <h1 class="serif" id="heroHeading"><span class="g-gold">Timepieces</span> &amp; <span class="g-rose">scents</span>, chosen with care</h1>
   <p id="heroSub">Curated pieces for men and women. Every item added by hand.</p>
 
   <div class="admin-brand-edit" id="brandEdit" style="display:none;">
@@ -258,6 +303,14 @@
 
 <div class="grid" id="grid"><div class="loading-note">Loading store…</div></div>
 <div class="orders-wrap" id="ordersPanel" style="display:none;"></div>
+
+<div class="reviews-section" id="reviewsSection" style="display:none;">
+  <div class="reviews-head">
+    <h2 class="serif">Customer reviews</h2>
+    <div class="reviews-avg" id="reviewsAvg"></div>
+  </div>
+  <div class="reviews-list" id="reviewsList"></div>
+</div>
 
 <div style="text-align:center;padding:0 40px 40px;">
   <button class="staff-link" id="trackOrderLink" style="opacity:0.85;color:var(--text-2);margin-right:14px;">Track / Rate my order</button>
@@ -347,9 +400,9 @@
 </div>
 
 <div class="modal-wrap" id="trackModal">
-  <div class="modal" style="width:380px;">
+  <div class="modal" style="width:380px;max-height:90vh;overflow-y:auto;">
     <h3>Track / rate my order</h3>
-    <p>Enter the phone number you used when placing your order.</p>
+    <p>Enter the phone number you used when placing your order. Once your order is <strong style="color:var(--accent);">Delivered</strong>, you can give it 1–5 stars and write a review.</p>
     <div class="a-field" style="margin-bottom:10px;">
       <span class="field-label">Phone number</span>
       <input type="text" id="trackPhoneInput" placeholder="03xx-xxxxxxx">
@@ -408,6 +461,13 @@ const cartCount = document.getElementById('cartCount');
 
 function fmt(n){ return "Rs " + Number(n).toLocaleString(); }
 
+/* Escape text before putting it into HTML (used for descriptions & reviews) */
+function esc(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 function showToast(msg){
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -440,7 +500,7 @@ async function loadStoreData(){
     if(prodsErr) console.error('products load error', prodsErr);
     if(settings){ storeName = settings.store_name; logoInitials = settings.logo_initials; }
     if(cats) categories = cats.map(c=>c.name);
-    if(prods) products = prods.map(p=>({...p, img: p.img_url || ""}));
+    if(prods) products = prods.map(p=>({...p, img: p.img_url || "", description: p.description || ""}));
   }catch(e){
     console.error('Failed to load store data', e);
     showToast('Could not load the store — check your Supabase config');
@@ -453,6 +513,35 @@ async function checkExistingSession(){
   if(data && data.session){
     isAdminAuthed = true;
     adminEmail = data.session.user.email;
+  }
+}
+
+/* ---------- public customer reviews (shown to everyone) ---------- */
+function starsHtml(n){
+  n = Math.max(0, Math.min(5, Math.round(n)));
+  return '★'.repeat(n) + '<span class="off">' + '★'.repeat(5-n) + '</span>';
+}
+
+async function loadPublicReviews(){
+  if(!sb) return;
+  const section = document.getElementById('reviewsSection');
+  try{
+    const { data, error } = await sb.rpc('get_public_reviews');
+    if(error){ console.warn('get_public_reviews not available yet:', error.message); section.style.display = 'none'; return; }
+    if(!data || data.length === 0){ section.style.display = 'none'; return; }
+    const avg = data.reduce((s,r)=>s + Number(r.rating||0), 0) / data.length;
+    document.getElementById('reviewsAvg').innerHTML =
+      `<span class="stars">${'★'.repeat(Math.round(avg))}</span>${avg.toFixed(1)} / 5 &middot; ${data.length} review${data.length>1?'s':''}`;
+    document.getElementById('reviewsList').innerHTML = data.map(r=>`
+      <div class="review-card">
+        <div class="stars">${starsHtml(r.rating)}</div>
+        ${r.review ? `<div class="r-text">&ldquo;${esc(r.review)}&rdquo;</div>` : ''}
+        <div class="r-by">— ${esc(r.customer_name || 'Customer')}${r.created_at ? ' &middot; ' + new Date(r.created_at).toLocaleDateString() : ''}</div>
+      </div>`).join('');
+    section.style.display = 'block';
+  }catch(e){
+    console.warn('Could not load reviews', e);
+    section.style.display = 'none';
   }
 }
 
@@ -547,11 +636,14 @@ function render(){
       : `Product photo`;
 
     if(mode === "customer"){
+      card.classList.add('shop');
       const outOfStock = p.qty <= 0;
+      const descText = (p.description || '').trim();
       card.innerHTML = `
-        <div class="photo">${photoInner}<span class="cat-tag">${p.category} · ${p.gender}</span></div>
+        <div class="photo">${photoInner}<span class="cat-tag">${p.category} · ${p.gender}</span>${descText ? `<div class="desc-overlay">${esc(descText)}</div>` : ''}</div>
         <div class="card-body">
           <div class="p-name serif">${p.name}</div>
+          ${descText ? `<div class="p-desc">${esc(descText)}</div>` : ''}
           <div class="p-price">${fmt(p.price)}</div>
           <div class="p-stock ${p.qty<=3 && p.qty>0 ? 'low':''}">${outOfStock ? 'Out of stock' : (p.qty<=3 ? 'Only '+p.qty+' left' : 'In stock')}</div>
           <button class="add-btn" ${outOfStock?'disabled':''} onclick="addToCart(${p.id})">${outOfStock?'Unavailable':'Add to cart'}</button>
@@ -566,6 +658,10 @@ function render(){
           <div class="a-field">
             <span class="field-label">Name</span>
             <input type="text" value="${dp.name}" oninput="updateDraftField(${p.id},'name',this.value)">
+          </div>
+          <div class="a-field">
+            <span class="field-label">Short description (shown when a customer hovers over the product)</span>
+            <textarea class="a-textarea" rows="3" maxlength="220" placeholder="e.g. Long-lasting oud fragrance, 100ml" oninput="updateDraftField(${p.id},'description',this.value)">${esc(dp.description || '')}</textarea>
           </div>
           <div class="a-row">
             <div class="a-field">
@@ -682,9 +778,17 @@ async function saveProduct(id){
   if(!draft || !p) return;
   const { error } = await sb.from('products').update({
     name: draft.name, category: draft.category, gender: draft.gender,
-    price: draft.price, qty: draft.qty, img_url: draft.img
+    price: draft.price, qty: draft.qty, img_url: draft.img,
+    description: (draft.description || '').trim()
   }).eq('id', id);
-  if(error){ showToast('Save failed: ' + error.message); return; }
+  if(error){
+    if(/description/i.test(error.message)){
+      showToast('Run the "description" SQL in Supabase first (see instructions)');
+    } else {
+      showToast('Save failed: ' + error.message);
+    }
+    return;
+  }
   Object.assign(p, draft);
   delete productDrafts[id];
   render();
@@ -711,7 +815,7 @@ async function addProduct(){
     name: "New product", category: categories[0], gender: "Men", price: 0, qty: 0, img_url: ""
   }).select().single();
   if(error){ showToast('Could not add product: ' + error.message); return; }
-  products.push({...data, img: data.img_url || ""});
+  products.push({...data, img: data.img_url || "", description: data.description || ""});
   renderCategoryFilters();
   render();
   showToast('New product added below — fill in details and click Save');
@@ -838,8 +942,8 @@ function renderOrders(){
     const waLink = `https://wa.me/${(o.phone||'').replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hi ' + o.customer_name + ', this is AR Store regarding your order.')}`;
     const ratingHtml = o.rating
       ? `<div class="track-order-card" style="margin-top:10px;">
-           <strong style="color:var(--accent);">${'★'.repeat(o.rating)}${'☆'.repeat(5-o.rating)}</strong> (${o.rating}/5)
-           ${o.review ? `<div style="margin-top:4px;color:var(--text-2);">"${o.review}"</div>` : ''}
+           <strong style="color:#e9b949;">${'★'.repeat(o.rating)}${'☆'.repeat(5-o.rating)}</strong> (${o.rating}/5)
+           ${o.review ? `<div style="margin-top:4px;color:var(--text-2);">"${esc(o.review)}"</div>` : ''}
            <button class="del-btn" style="margin-top:8px;" onclick="removeRating(${o.id})">Remove rating</button>
          </div>`
       : '';
@@ -888,6 +992,7 @@ async function removeRating(id){
   const o = orders.find(o=>o.id===id);
   if(o){ o.rating = null; o.review = null; }
   renderOrders();
+  loadPublicReviews();
   showToast('Rating removed');
 }
 
@@ -1015,15 +1120,18 @@ async function lookupOrdersByPhone(){
     let ratingHtml = '';
     if(o.status === 'Delivered'){
       if(o.rating){
-        ratingHtml = `<div class="already-rated">You rated this order ${o.rating}/5${o.review ? ' — "' + o.review + '"' : ''}. Thank you!</div>`;
+        ratingHtml = `<div class="already-rated">You rated this order <span style="color:#e9b949;">${'★'.repeat(o.rating)}</span> ${o.rating}/5${o.review ? ' — "' + esc(o.review) + '"' : ''}. Thank you!</div>`;
       } else {
         ratingHtml = `
-          <div class="field-label" style="margin-top:8px;">Rate this order</div>
+          <div class="field-label" style="margin-top:10px;">Rate this order (1 to 5 stars)</div>
           <div class="star-row" id="starRow-${o.id}"></div>
-          <textarea id="reviewText-${o.id}" rows="2" placeholder="Optional comment about your experience" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;width:100%;resize:vertical;margin-bottom:8px;"></textarea>
+          <div class="rating-label" id="ratingLabel-${o.id}"></div>
+          <textarea id="reviewText-${o.id}" rows="2" placeholder="Write your review (optional)" style="background:var(--surface);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:6px;font-size:13px;font-family:'Inter',sans-serif;width:100%;resize:vertical;margin-bottom:8px;"></textarea>
           <button class="save-pill" onclick="submitRating(${o.id}, '${phone.replace(/'/g,"\\'")}')">Submit rating</button>
-          <div class="error-note" id="ratingError-${o.id}">Please select a star rating first.</div>`;
+          <div class="error-note" id="ratingError-${o.id}" style="margin-top:8px;">Please select a star rating first.</div>`;
       }
+    } else if(o.status !== 'Cancelled'){
+      ratingHtml = `<div style="color:var(--text-3);font-size:12px;margin-top:8px;">You can rate this order once it has been delivered.</div>`;
     }
     card.innerHTML = `
       <span class="track-status-badge">${o.status}</span>
@@ -1042,22 +1150,24 @@ document.getElementById('lookupOrdersBtn').onclick = lookupOrdersByPhone;
 document.getElementById('trackPhoneInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') lookupOrdersByPhone(); });
 
 const selectedRatings = {}; // orderId -> chosen star value (in-memory only)
+const RATING_WORDS = { 1:'Poor', 2:'Fair', 3:'Good', 4:'Very good', 5:'Excellent' };
 
 function buildStarRow(orderId){
   const row = document.getElementById('starRow-' + orderId);
+  const label = document.getElementById('ratingLabel-' + orderId);
   if(!row) return;
   row.innerHTML = '';
+  const paint = (n)=>{
+    Array.from(row.children).forEach((el, idx)=> el.classList.toggle('filled', idx < n));
+    if(label) label.textContent = n ? `${n}/5 — ${RATING_WORDS[n]}` : '';
+  };
   for(let i=1;i<=5;i++){
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'star-btn';
     btn.textContent = '★';
-    btn.onclick = ()=>{
-      selectedRatings[orderId] = i;
-      Array.from(row.children).forEach((el, idx)=>{
-        el.classList.toggle('filled', idx < i);
-      });
-    };
+    btn.setAttribute('aria-label', i + ' star' + (i>1?'s':''));
+    btn.onclick = ()=>{ selectedRatings[orderId] = i; paint(i); };
     row.appendChild(btn);
   }
 }
@@ -1074,6 +1184,7 @@ async function submitRating(orderId, phone){
   if(error){ showToast('Could not submit rating: ' + error.message); return; }
   showToast('Thank you for your feedback!');
   lookupOrdersByPhone();
+  loadPublicReviews();
 }
 
 
@@ -1256,13 +1367,16 @@ function subscribeToChanges(){
       await loadStoreData();
       renderCategoryFilters();
       if(mode === 'admin') renderCategoryChips();
-      render();
+      // Don't rebuild the admin grid while someone is typing in it
+      if(!(mode === 'admin' && Object.keys(productDrafts).length > 0)) render();
     }, 300);
   };
   let ordersReloadTimer = null;
   const scheduleOrdersReload = ()=>{
     clearTimeout(ordersReloadTimer);
     ordersReloadTimer = setTimeout(async ()=>{
+      loadPublicReviews();
+      if(!isAdminAuthed) return;
       await loadOrders();
       if(mode === 'orders') renderOrders();
       else showToast('New order received');
@@ -1296,6 +1410,7 @@ function subscribeToChanges(){
   render();
   updateCartUI();
   subscribeToChanges();
+  loadPublicReviews();
 
   const waFab = document.getElementById('whatsappFab');
   const waText = encodeURIComponent(`Hi ${storeName}, I have a question.`);
